@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Notebook Report - Mobile Optimized</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+        /* ปรับความสูงตารางสำหรับ Desktop */
+        @media (min-width: 768px) {
+            .table-container { max-height: 600px; overflow-y: auto; }
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-10 text-slate-800">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header Section -->
+        <header class="mb-6 flex flex-col gap-2">
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">Digital Notebook</h1>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-slate-500 text-xs md:text-sm font-medium">รายงานสรุปข้อมูลการส่งผลงาน</span>
+                <span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-200">อัปเดต: 28/03/2026</span>
+            </div>
+        </header>
+
+        <!-- Controls Section -->
+        <div class="flex flex-col gap-3 mb-6">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="ค้นหาชื่อ, สาขา, หรือหน่วยงาน..." class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition shadow-sm font-medium text-sm">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </span>
+            </div>
+            <select id="facultyFilter" class="w-full py-3 px-4 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition shadow-sm font-bold text-slate-700 text-sm appearance-none cursor-pointer">
+                <option value="all">ทุกหน่วยงาน</option>
+            </select>
+        </div>
+
+        <!-- Stats Grid (Row 2 Columns) -->
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <p class="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-1">ผลงานทั้งหมด</p>
+                <div class="flex items-baseline gap-1">
+                    <h3 class="text-2xl font-black text-slate-900" id="statTotalItems">0</h3>
+                    <span class="text-slate-400 font-bold text-xs">รายการ</span>
+                </div>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <p class="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-1">หน่วยงาน</p>
+                <div class="flex items-baseline gap-1">
+                    <h3 class="text-2xl font-black text-slate-900" id="statTotalFaculties">0</h3>
+                    <span class="text-slate-400 font-bold text-xs">แห่ง</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <!-- Desktop Table View (Hidden on mobile) -->
+            <div class="hidden md:block table-container">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-10">
+                        <tr>
+                            <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">หน่วยงาน</th>
+                            <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">สาขาวิชา</th>
+                            <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">ผู้แต่ง</th>
+                            <th class="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">ลิงก์</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyDesktop" class="divide-y divide-slate-50 text-sm"></tbody>
+                </table>
+            </div>
+
+            <!-- Mobile Card View (Hidden on desktop) -->
+            <div id="cardContainerMobile" class="md:hidden divide-y divide-slate-100">
+                <!-- Cards will be generated here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden p-10 text-center text-slate-400 font-bold italic text-sm">
+                ไม่พบข้อมูลที่คุณค้นหา
+            </div>
+
+            <!-- Footer Info -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                <span id="rowCountDisplay" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">กำลังโหลด...</span>
+            </div>
+        </div>
+
+        <!-- Export Action (Bottom) -->
+        <button id="downloadBtn" class="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-blue-600 text-white p-4 rounded-2xl text-sm font-bold transition-all shadow-lg active:scale-95 group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            ส่งออกข้อมูลรายงาน (CSV)
+        </button>
+    </div>
+
+    <script>
+        const embeddedData = [
+            {"คณะ": "สำนักงานอธิการบดีและสื่อสารองค์กร", "สาขาวิชา": "สำนักงานอธิการบดีและสื่อสารองค์กร", "Author": "อ.รมิดา ศรีงาม", "Attachment link": "https://notebooklm.google.com/notebook/4672ed6c-3cd6-4943-a4e1-846b9e9e3307"},
+            {"คณะ": "สำนักงานอธิการบดีและสื่อสารองค์กร", "สาขาวิชา": "สำนักงานอธิการบดีและสื่อสารองค์กร", "Author": "อ. เบญจภรณ์ อนันต์วณิชย์ชา", "Attachment link": "https://notebooklm.google.com/notebook/4cfc40c5-219b-4c2b-81e2-5ccd499ccab6"},
+            {"คณะ": "สำนักมาตรฐานวิชาการ", "สาขาวิชา": "สำนักมาตรฐานวิชาการ", "Author": "อ.กานดา เจริญเตีย", "Attachment link": "https://notebooklm.google.com/notebook/2d3ad1c0-6c83-4515-aed5-0837766da3cc?artifactId=0b73fd6e-9eea-4bb6-b7a6-920d4a85dc20"},
+            {"คณะ": "สำนักมาตรฐานวิชาการ", "สาขาวิชา": "สำนักมาตรฐานวิชาการ", "Author": "อ.สุนทร ศรีจันทร์", "Attachment link": "https://notebooklm.google.com/notebook/fb79572a-a0f3-4546-b85d-891d94832cef?authuser=1"},
+            {"คณะ": "สำนักมาตรฐานวิชาการ", "สาขาวิชา": "สำนักมาตรฐานวิชาการ", "Author": "ดร.สุรางค์ บุญยะพงศ์ไชย", "Attachment link": "https://notebooklm.google.com/notebook/a846b54a-63cb-47e0-a9c5-b90791e99d21"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "เทคโนโลยียานยนต์สมัยใหม่", "Author": "ว่าที่ ร.ต. ศรายุทธ วรพงศ์พัชร์", "Attachment link": "https://notebooklm.google.com/notebook/ffe6ea37-ea04-4b49-8d86-06ed4864e8fd"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "เทคโนโลยียานยนต์สมัยใหม่", "Author": "อ.รัฐพล โพธิ์ศรี", "Attachment link": "https://notebooklm.google.com/notebook/de0c1cfa-1072-4d6d-a750-2bbe80270672"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "เทคโนโลยียานยนต์สมัยใหม่", "Author": "ดร.วิทูร พุตินันท์ภากร", "Attachment link": "https://notebooklm.google.com/notebook/6ed67dee-d502-403b-9506-55ba3ead8786"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "เทคโนโลยีไฟฟ้าและระบบควบคุมอัตโนมัติ", "Author": "อ.วริศร์ รันนิมิตร ", "Attachment link": "https://notebooklm.google.com/notebook/25a9c4ce-6158-468b-9f51-f4897b7f37b3?authuser=4"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "เทคโนโลยีไฟฟ้าและระบบควบคุมอัตโนมัติ", "Author": "อ.วริศร์ รัตนนิมิตร ", "Attachment link": "https://notebooklm.google.com/notebook/73bf2af0-138b-4077-8939-35bb3796ff06?authuser=4"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "เทคโนโลยีไฟฟ้าและระบบควบคุมอัตโนมัติ", "Author": "อ.สงกรานต์ ภารกุล", "Attachment link": "https://notebooklm.google.com/notebook/f7839a7d-4651-44be-8f37-a5dfe9c9fe43"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "เทคโนโลยีไฟฟ้าและระบบควบคุมอัตโนมัติ", "Author": "อ.กำจัด ใจตรง", "Attachment link": "https://notebooklm.google.com/notebook/61a66a45-6a19-44e4-a4d5-74666f35676e"},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "วิศวกรรมซ่อมบำรุงอากาศยาน", "Author": "-", "Attachment link": ""},
+            {"คณะ": "วิศวกรรมศาสตร์และเทคโนโลยี", "สาขาวิชา": "วิศวกรรมพลังงานและโลจิสติกส์", "Author": "อ.สารสิน โคตรธาดา", "Attachment link": "https://notebooklm.google.com/notebook/8a9861c4-e6f6-4116-8060-fcb972a6298f"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "คณบดีคณะบริหารธุรกิจ", "Author": "รศ.ดร.โอภาส  กิจกำแหง", "Attachment link": "https://notebooklm.google.com/notebook/59d4f07e-a336-4ae2-9d51-f77710967595"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "การตลาด", "Author": "อ.เกสรี สมประสงค์ ", "Attachment link": "https://notebooklm.google.com/notebook/5e419174-0776-4497-8bdc-d86450bf401c"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "-", "Author": "อ.พิชญพงค์ อยู่มาก", "Attachment link": "https://notebooklm.google.com/notebook/db72a4a3-d7c8-4aac-9038-e03ba152d26d"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "การจัดการ", "Author": "ผศ.กานต์ วัฒนะประทัป", "Attachment link": "https://notebooklm.google.com/notebook/fe54a347-8c49-47d4-8bcb-8e603840e803"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "การจัดการ", "Author": "อ.ชัชชญา เกษเพชรสุวรรณ", "Attachment link": "https://notebooklm.google.com/notebook/868dbdf9-da9c-4317-8ff5-4954d557022f"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "การจัดการ", "Author": "อ.จริญญา ภิญโยยง", "Attachment link": "https://notebooklm.google.com/notebook/fe05f98c-a33d-4b2b-a497-9264623d1373"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "การจัดการ", "Author": "อ.กนกมณี หอมแก้ว", "Attachment link": "https://notebooklm.google.com/notebook/10126c07-dd4a-4ebd-a581-fca2cce08bd7"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "การจัดการ", "Author": "อ.ปริญญา เลิศประเสริฐ", "Attachment link": "https://notebooklm.google.com/notebook/398e91f3-b2b9-4cee-9e08-c411722d2cc0"},
+            {"คณะ": "บริหารธุรกิจ", "สาขาวิชา": "การบัญชี", "Author": "อ.สุนิสา พิมมานัส", "Attachment link": "https://notebooklm.google.com/notebook/226da5e0-4ceb-4255-be79-645bb5653297"},
+            {"คณะ": "บริหารธุรกิจ (IBM)", "สาขาวิชา": "การจัดการธุรกิจระหว่างประเทศ (IBM)", "Author": "อ.รัฏฐชญาพร โอสถ", "Attachment link": "https://storage.googleapis.com/padlet-uploads-usc1/5342149347/07dff31501d1da1c4053122c365dfe16/7_Eleven_Thailand_Digital_Transformation.pptx?Expires=1775094193&GoogleAccessId=778043051564-q79bsd8mc40b0bl82ikkrtc3jdofe4dg%40developer.gserviceaccount.com&Signature=TwyxIEPURV7DngxDBE2qM24UiT7KbTi5wNY1A%2FAUTyciEHb4V0EIu47FmgV309tDACHy4cCk%2Fe6df%2FUvCwIHunqoGA8dMI97fOaxOGybYleiHhUOZApdT8QEhI059TqzpoRfds%2BjwEbgAcgmkGj%2F4NkQ17yE2fxIacD0yYZl%2B8E%3D&original-url=https%3A%2F%2Fpadlet-uploads-usc1.storage.googleapis.com%2F5342149347%2F07dff31501d1da1c4053122c365dfe16%2F7_Eleven_Thailand_Digital_Transformation.pptx"},
+            {"คณะ": "การบริการและการท่องเที่ยว", "สาขาวิชา": "การจัดการนวัตกรรมการท่องเที่ยวและบริการ", "Author": "ดร.สุพัชรจิต จิตประไพ ", "Attachment link": "https://notebooklm.google.com/notebook/4f164b33-01e4-4626-a492-5e76cfc4b5f1?authuser=2"},
+            {"คณะ": "การบริการและการท่องเที่ยว", "สาขาวิชา": "การจัดการนวัตกรรมการท่องเที่ยวและบริการ", "Author": "อ.เบญจวรรณ รอดคล้ายขลิบ ", "Attachment link": "https://notebooklm.google.com/notebook/0a92adf0-5b0c-4de5-98e6-6a98d3ffa504"},
+            {"คณะ": "การบริการและการท่องเที่ยว", "สาขาวิชา": "การจัดการนวัตกรรมการท่องเที่ยวและบริการ", "Author": "อ.จิรกฤต เสมอเพื่อน", "Attachment link": "https://notebooklm.google.com/notebook/a4f2749b-2c99-4d2e-a046-2979def72fbc"},
+            {"คณะ": "รัฐประศาสนศาสตร์", "สาขาวิชา": "รัฐประศาสนศาสตร์", "Author": "อ.อนันต์ มณีรัตน์", "Attachment link": "https://notebooklm.google.com/notebook/6d3fa4e6-a363-40b4-8483-505ca253f4d8"},
+            {"คณะ": "รัฐประศาสนศาสตร์", "สาขาวิชา": "รัฐประศาสนศาสตร์", "Author": "อ.อนันต์ มณีรัตน์ (เทคนิคการจัดการฯ)", "Attachment link": "https://notebooklm.google.com/notebook/9458ed02-5b59-491f-8a23-8f96ed4e0077"},
+            {"คณะ": "รัฐประศาสนศาสตร์", "สาขาวิชา": "รัฐประศาสนศาสตร์", "Author": "อ.ชานนท์ คันธฤทธิ์", "Attachment link": "https://notebooklm.google.com/notebook/a05d53a4-7c3b-4680-87df-53ea3f536bf4"},
+            {"คณะ": "รัฐประศาสนศาสตร์", "สาขาวิชา": "รัฐประศาสนศาสตร์", "Author": "รศ.ดร.ศักดา ศิลปาภิสันทน์", "Attachment link": "https://notebooklm.google.com/notebook/87d9f5e9-5296-4989-990a-a6420f51d924"},
+            {"คณะ": "รัฐประศาสนศาสตร์", "สาขาวิชา": "รัฐประศาสนศาสตร์", "Author": "ผศ.ดร.สุดาภรณ์ กิจกุลนำชัย", "Attachment link": "https://notebooklm.google.com/notebook/4eb00b5b-b0ff-44cf-ac76-8cbf162fd26f"},
+            {"คณะ": "รัฐประศาสนศาสตร์", "สาขาวิชา": "รัฐประศาสนศาสตร์", "Author": "ผศ.ดร.สุดาภรณ์ กิจกุลนำชัย (ID: 54)", "Attachment link": "https://notebooklm.google.com/notebook/4eb00b5b-b0ff-44cf-ac76-8cbf162fd26f"},
+            {"คณะ": "วิทยาศาสตร์สุขภาพ", "สาขาวิชา": "สาธารณสุขศาสตร์", "Author": "อ.สรินทร พัฒอำพันธ์", "Attachment link": "https://notebooklm.google.com/notebook/821c2676-62e5-4994-99e7-5bc3494d7d4a?authuser=1"},
+            {"คณะ": "วิทยาศาสตร์สุขภาพ", "สาขาวิชา": "สาธารณสุขศาสตร์", "Author": "อ.สุภัทรา ผาคำ", "Attachment link": "https://notebooklm.google.com/notebook/c1b5c8dc-742f-4ee2-967d-6b35fc783c64"},
+            {"คณะ": "วิทยาศาสตร์สุขภาพ", "สาขาวิชา": "สาธารณสุขศาสตร์", "Author": "อ.อินจิรา นิยมธูร", "Attachment link": "https://notebooklm.google.com/notebook/583d4e08-a924-43eb-8837-0c1b24e9baef/preview"},
+            {"คณะ": "วิทยาศาสตร์สุขภาพ", "สาขาวิชา": "อาชีวอนามัยและความปลอดภัย", "Author": "อ.ปัญจ์ปพัชรภร บุญพร้อม", "Attachment link": "https://notebooklm.google.com/notebook/13191dd4-989b-45b7-9ec4-f10671d65889"},
+            {"คณะ": "วิทยาศาสตร์สุขภาพ", "สาขาวิชา": "อาชีวอนามัยและความปลอดภัย", "Author": "อ.ปัญจ์ปพัชรภร บุญพร้อม ppt.", "Attachment link": "https://notebooklm.google.com/notebook/b67590b8-df57-4495-9ca7-6957fa8c7597?artifactId=20e5c025-b63d-4009-84cc-cc7a580ce36c"},
+            {"คณะ": "วิทยาศาสตร์สุขภาพ", "สาขาวิชา": "อาชีวอนามัยและความปลอดภัย", "Author": "อ.สุคนธ์ ขาวกริบ", "Attachment link": "https://notebooklm.google.com/notebook/b3b62f07-ca02-4ab8-9cc7-a2fc44470c62?authuser=3"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "คณบดี", "Author": "ดร.ณธรา เหมือนปิ๋ว", "Attachment link": "https://notebooklm.google.com/notebook/d71bb65e-ab54-4d34-94e8-812fb2cc833e?artifactId=75f412ad-0de1-40e7-89e3-65a004fda98b"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "คณบดี (ID: 56)", "Author": "ดร.ณธรา เหมือนปิ๋ว", "Attachment link": "https://notebooklm.google.com/notebook/e13a9f56-088a-4b86-8f0f-cce924f60c55?artifactId=b49b960e-c291-4754-aafb-95cf68c8e35a"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "คณบดี (ID: 57)", "Author": "ดร.ณธรา เหมือนปิ๋ว", "Attachment link": "https://notebooklm.google.com/notebook/e13a9f56-088a-4b86-8f0f-cce924f60c55"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "TESOL", "Author": "อ.ณิชา กิจบำรุง", "Attachment link": "https://notebooklm.google.com/notebook/ab036f14-1fb3-4925-9f4d-0c6b5d8dafc5?authuser=2"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "ศึกษาทั่วไป", "Author": "อ.จามจุรี นิศยันต์", "Attachment link": "https://notebooklm.google.com/notebook/74b725fb-3600-4d3f-b7f0-86e4ce8cf1c7"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "ศึกษาทั่วไป (ID: 24)", "Author": "ดร.กฤษติยา โตม่วง", "Attachment link": "https://notebooklm.google.com/notebook/0d06db8c-9ee7-4d4f-a119-7ff8b4188553"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "ศึกษาทั่วไป (ID: 25)", "Author": "ดร. กัญญาณี แซ่ฉั่ว", "Attachment link": "https://notebooklm.google.com/notebook/f46de5ad-ea91-444e-88da-b973dd244676"},
+            {"คณะ": "ศึกษาศาสตร์", "สาขาวิชา": "ศึกษาศาสตรมหาบัณฑิต", "Author": "ดร.สาริศา เจนเขว้า", "Attachment link": "https://notebooklm.google.com/notebook/249a2be4-9a24-489d-bbac-f74dcf162302"},
+            {"คณะ": "ศึกษาศาสตร์ (มหาบัณฑิต)", "สาขาวิชา": "ศึกษาศาสตรมหาบัณฑิต", "Author": "ผศ.ดร.ทัศพร เกตุถนอม", "Attachment link": "https://storage.googleapis.com/padlet-uploads-usc1/5341771529/b93f4a8a2fe990e19beb191c4cbeae7d/From_Blueprints_to_Ecosystems.pptx?Expires=1775094193&GoogleAccessId=778043051564-q79bsd8mc40b0bl82ikkrtc3jdofe4dg%40developer.gserviceaccount.com&Signature=Z2XUMIFxfrlYScDNiqJWYXr1YByiDSj40dMtHF%2FxrW0M42oPAHhsP77oG%2B336pEVdfJ5rBHK6K7YuQKg6LvlZjcRMtnGlS8DfSM%2F6Y1cQYPjTMlLHaxE0CJh6CCwMKGLMHlwFtKtvrzEMBCU4tHOgwpbatSuoOp0yytBPfGRcAc%3D&original-url=https%3A%2F%2Fpadlet-uploads-usc1.storage.googleapis.com%2F5341771529%2Fb93f4a8a2fe990e19beb191c4cbeae7d%2FFrom_Blueprints_to_Ecosystems.pptx"},
+            {"คณะ": "ศูนย์ภาษาต่างประเทศ", "สาขาวิชา": "ศูนย์ภาษาต่างประเทศ", "Author": "อ.นฤมล สเนลโกรฟ", "Attachment link": "https://notebooklm.google.com/notebook/f49e94a2-aabc-4ca5-8b51-ed143aea1a31"},
+            {"คณะ": "ศูนย์ภาษาต่างประเทศ", "สาขาวิชา": "ศูนย์ภาษาต่างประเทศ", "Author": "อ.กัญจน์วรางค์ เฉลิมเมือง", "Attachment link": "https://notebooklm.google.com/notebook/24ab367e-996c-4ad7-be15-7b687ba33fd2?authuser=1"},
+            {"คณะ": "ดิจิทัล", "สาขาวิชา": "ธุรกิจดิจิทัล", "Author": "อ กัญณัฏฐ์ สุริยันต์", "Attachment link": "https://notebooklm.google.com/notebook/ad273eee-50d3-4a7d-aecd-8dfcf1101b9b"},
+            {"คณะ": "ดิจิทัล", "สาขาวิชา": "ธุรกิจดิจิทัล", "Author": "อ.ประวีณ ไม้เกตุ", "Attachment link": "https://notebooklm.google.com/notebook/c072d08c-197d-4582-9820-8d9ea522b7b9"}
+        ];
+
+        let filteredData = [...embeddedData];
+        const searchInput = document.getElementById('searchInput');
+        const facultyFilter = document.getElementById('facultyFilter');
+        const tableBodyDesktop = document.getElementById('tableBodyDesktop');
+        const cardContainerMobile = document.getElementById('cardContainerMobile');
+        const rowCountDisplay = document.getElementById('rowCountDisplay');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const emptyState = document.getElementById('emptyState');
+        const statTotalItems = document.getElementById('statTotalItems');
+        const statTotalFaculties = document.getElementById('statTotalFaculties');
+
+        window.onload = function() {
+            setupFacultiesDropdown();
+            renderReport();
+        };
+
+        function setupFacultiesDropdown() {
+            const faculties = [...new Set(embeddedData.map(item => item['คณะ']).filter(Boolean))].sort();
+            facultyFilter.innerHTML = '<option value="all">ทุกหน่วยงาน</option>';
+            faculties.forEach(fac => {
+                const option = document.createElement('option');
+                option.value = fac;
+                option.textContent = fac;
+                facultyFilter.appendChild(option);
+            });
+        }
+
+        function renderReport() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedFaculty = facultyFilter.value;
+
+            filteredData = embeddedData.filter(item => {
+                const searchContent = `${item['คณะ']} ${item['สาขาวิชา']} ${item['Author']}`.toLowerCase();
+                const matchSearch = searchContent.includes(searchTerm);
+                const matchFaculty = selectedFaculty === 'all' || item['คณะ'] === selectedFaculty;
+                return matchSearch && matchFaculty;
+            });
+
+            // Clear previous content
+            tableBodyDesktop.innerHTML = '';
+            cardContainerMobile.innerHTML = '';
+            
+            if (filteredData.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filteredData.forEach(item => {
+                    // Desktop Table Row
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-blue-50/40 transition-colors";
+                    tr.innerHTML = `
+                        <td class="p-4 border-b border-slate-50 font-bold text-slate-800">${item['คณะ'] || '-'}</td>
+                        <td class="p-4 border-b border-slate-50 text-slate-500">${item['สาขาวิชา'] || '-'}</td>
+                        <td class="p-4 border-b border-slate-50 font-semibold text-slate-900">${item['Author'] || '-'}</td>
+                        <td class="p-4 border-b border-slate-50 text-right">
+                            ${item['Attachment link'] ? `
+                                <a href="${item['Attachment link']}" target="_blank" class="text-blue-500 hover:text-blue-700 transition-colors inline-block" title="ดูผลงาน">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                </a>
+                            ` : '-'}
+                        </td>
+                    `;
+                    tableBodyDesktop.appendChild(tr);
+
+                    // Mobile Card
+                    const card = document.createElement('div');
+                    card.className = "p-5 flex flex-col gap-2 bg-white";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">${item['คณะ'] || 'ไม่ระบุหน่วยงาน'}</span>
+                            ${item['Attachment link'] ? `
+                                <a href="${item['Attachment link']}" target="_blank" class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                </a>
+                            ` : ''}
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 leading-tight">${item['Author'] || 'ไม่ทราบชื่อผู้แต่ง'}</h4>
+                        <p class="text-xs text-slate-500 font-medium italic">${item['สาขาวิชา'] || '-'}</p>
+                    `;
+                    cardContainerMobile.appendChild(card);
+                });
+            }
+            updateStats();
+        }
+
+        function updateStats() {
+            statTotalItems.textContent = filteredData.length.toLocaleString();
+            const uniqueFacs = [...new Set(filteredData.map(item => item['คณะ']).filter(Boolean))];
+            statTotalFaculties.textContent = uniqueFacs.length.toLocaleString();
+            rowCountDisplay.textContent = `พบ ${filteredData.length} รายการ`;
+        }
+
+        searchInput.addEventListener('input', renderReport);
+        facultyFilter.addEventListener('change', renderReport);
+
+        downloadBtn.addEventListener('click', function() {
+            if (filteredData.length === 0) return;
+            const headers = ["หน่วยงาน", "สาขาวิชา", "ผู้แต่ง", "ลิงก์"];
+            const csvContent = [
+                headers.join(','),
+                ...filteredData.map(row => [
+                    `"${row['คณะ'] || ''}"`,
+                    `"${row['สาขาวิชา'] || ''}"`,
+                    `"${row['Author'] || ''}"`,
+                    `"${row['Attachment link'] || ''}"`
+                ].join(','))
+            ].join('\n');
+            const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.setAttribute("href", URL.createObjectURL(blob));
+            link.setAttribute("download", `notebook_report_mobile.csv`);
+            link.click();
+        });
+    </script>
+</body>
+</html>
